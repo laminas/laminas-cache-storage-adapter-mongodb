@@ -4,10 +4,14 @@ cache:
   directories:
     - $HOME/.composer/cache
 
+services:
+  - mongodb
+
 env:
   global:
     - COMPOSER_ARGS="--no-interaction"
     - COVERAGE_DEPS="php-coveralls/php-coveralls"
+    - TESTS_LAMINAS_CACHE_MONGODB_USE_POLYFILL=true
 
 matrix:
   fast_finish: true
@@ -15,9 +19,11 @@ matrix:
     - php: 5.6
       env:
         - DEPS=lowest
+        - TESTS_LAMINAS_CACHE_MONGODB_USE_POLYFILL=false
     - php: 5.6
       env:
         - DEPS=latest
+        - TESTS_LAMINAS_CACHE_MONGODB_USE_POLYFILL=false
     - php: 7.0
       env:
         - DEPS=lowest
@@ -55,7 +61,9 @@ before_install:
   - if [[ $TEST_COVERAGE != 'true' ]]; then phpenv config-rm xdebug.ini || return 0 ; fi
 
 install:
+  - if [[ $TESTS_LAMINAS_CACHE_MONGODB_USE_POLYFILL != 'true' ]]; then phpenv config-add .ci/mongo.ini ; fi
   - travis_retry composer install $COMPOSER_ARGS --ignore-platform-reqs
+  if [[ $TESTS_LAMINAS_CACHE_MONGODB_USE_POLYFILL == 'true' ]]; then travis_retry composer require --dev --no-update $COMPOSER_ARGS mongofill/mongofill:dev-master ; fi
   - if [[ $DEPS == 'latest' ]]; then travis_retry composer update $COMPOSER_ARGS ; fi
   - if [[ $DEPS == 'lowest' ]]; then travis_retry composer update --prefer-lowest --prefer-stable $COMPOSER_ARGS ; fi
   - if [[ $TEST_COVERAGE == 'true' ]]; then travis_retry composer require --dev $COMPOSER_ARGS $COVERAGE_DEPS ; fi
